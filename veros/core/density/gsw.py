@@ -1,4 +1,6 @@
-from ... import veros_method
+from veros.core.operators import numpy as np
+
+from veros import veros_kernel
 
 """
 ==========================================================================
@@ -8,6 +10,7 @@ from ... import veros_method
   density in terms of SA, CT and p (IOC et al., 2010).
 ==========================================================================
 """
+
 v01 = 9.998420897506056e+2
 v02 = 2.839940833161907e0
 v03 = -3.147759265588511e-2
@@ -59,8 +62,8 @@ v48 = 6.057902487546866e-17
 rho0 = 1024.0
 
 
-@veros_method
-def gsw_rho(vs, sa, ct, p):
+@veros_kernel
+def gsw_rho(sa, ct, p):
     """
      density as a function of T, S, and p
      sa     : Absolute Salinity                               [g/kg]
@@ -85,8 +88,8 @@ def gsw_rho(vs, sa, ct, p):
     return v_hat_denominator / v_hat_numerator - rho0
 
 
-@veros_method
-def gsw_drhodT(vs, sa, ct, p):
+@veros_kernel
+def gsw_drhodT(sa, ct, p):
     """
     d/dT of density
     sa     : Absolute Salinity                               [g/kg]
@@ -151,8 +154,8 @@ def gsw_drhodT(vs, sa, ct, p):
     return (dvhatden_dct - dvhatnum_dct * rho) * rec_num
 
 
-@veros_method
-def gsw_drhodS(vs, sa, ct, p):
+@veros_kernel
+def gsw_drhodS(sa, ct, p):
     """
      d/dS of density
      sa     : Absolute Salinity                               [g/kg]
@@ -209,8 +212,8 @@ def gsw_drhodS(vs, sa, ct, p):
     return (dvhatden_dsa - dvhatnum_dsa * rho) * rec_num
 
 
-@veros_method
-def gsw_drhodP(vs, sa, ct, p):
+@veros_kernel
+def gsw_drhodP(sa, ct, p):
     """
      d/dp of density
      sa     : Absolute Salinity                               [g/kg]
@@ -264,8 +267,8 @@ def gsw_drhodP(vs, sa, ct, p):
     return pa2db * (dvhatden_dp - dvhatnum_dp * rho) * rec_num
 
 
-@veros_method
-def gsw_dyn_enthalpy(vs, sa, ct, p):
+@veros_kernel
+def gsw_dyn_enthalpy(sa, ct, p):
     """
      Calculates dynamic enthalpy of seawater using the computationally
      efficient 48-term expression for density in terms of SA, CT and p
@@ -304,38 +307,8 @@ def gsw_dyn_enthalpy(vs, sa, ct, p):
     return Hd - p * db2pa / rho0
 
 
-@veros_method
-def gsw_dHdT1(vs, sa, ct, p):
-    """
-     d/dT of dynamic enthalpy, numerical derivative
-
-     sa     : Absolute Salinity                               [g/kg]
-     ct     : Conservative Temperature                        [deg C]
-     p      : sea pressure                                    [dbar]
-    ==========================================================================
-    """
-    p = np.asarray(p)  # convert scalar value if necessary
-    delta = 1e-4
-    return (gsw_dyn_enthalpy(sa, ct + delta, p) - gsw_dyn_enthalpy(sa, ct, p)) / delta
-
-
-@veros_method
-def gsw_dHdS1(vs, sa, ct, p):
-    """
-     d/dS of dynamic enthalpy, numerical derivative
-
-     sa     : Absolute Salinity                               [g/kg]
-     ct     : Conservative Temperature                        [deg C]
-     p      : sea pressure                                    [dbar]
-    ==========================================================================
-    """
-    p = np.asarray(p)  # convert scalar value if necessary
-    delta = 1e-4
-    return (gsw_dyn_enthalpy(sa + delta, ct, p) - gsw_dyn_enthalpy(sa, ct, p)) / delta
-
-
-@veros_method
-def gsw_dHdT(vs, sa_in, ct_in, p):
+@veros_kernel
+def gsw_dHdT(sa_in, ct_in, p):
     """
     d/dT of dynamic enthalpy, analytical derivative
 
@@ -385,7 +358,7 @@ def gsw_dHdT(vs, sa_in, ct_in, p):
     t92 = v01 + ct * (v02 + t76) + sa * (v05 + ct * (v06 + t79) + t82 * (v08 + ct * (v09 + t85)))
     t93 = v48 * t92
     t105 = v02 + t76 + ct * (v03 + 2.0 * t74) + sa * (v06 + 2.0 * t79 +
-                                                    t82 * (v09 + t85 + ct * (v10 + 2.0 * t83)))
+                                                      t82 * (v09 + t85 + ct * (v10 + 2.0 * t83)))
     t106 = t24 * t105
     t107 = v44 + t2 + t3
     t110 = v43 + t48
@@ -414,7 +387,7 @@ def gsw_dHdT(vs, sa_in, ct_in, p):
     t199 = t13 * t20
     t217 = 2.0 * t117 * t199 - t110 * t92
     t234 = v21 + ct * (v22 + t169) + sa * (v26 + ct * (v27 + t179) + v36 *
-                                        sa + t82 * (v31 + ct * (v32 + t189))) + t217 * t20
+                                           sa + t82 * (v31 + ct * (v32 + t189))) + t217 * t20
     t241 = t64 - t92 * t19
     t242 = np.sqrt(t241)
     t243 = 1.0 / t242
@@ -454,8 +427,8 @@ def gsw_dHdT(vs, sa_in, ct_in, p):
     return t305
 
 
-@veros_method
-def gsw_dHdS(vs, sa_in, ct_in, p):
+@veros_kernel
+def gsw_dHdS(sa_in, ct_in, p):
     """
     d/dS of dynamic enthalpy, analytical derivative
     sa     : Absolute Salinity                               [g/kg]

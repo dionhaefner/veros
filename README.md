@@ -23,10 +23,9 @@ it is a pure Python module, the days of struggling with complicated
 model setup workflows, ancient programming environments, and obscure
 legacy code are finally over.
 
-Veros supports both a NumPy backend for small-scale problems and a fully
-parallelized high-performance backend [powered by
-Bohrium](https://github.com/bh107/bohrium) using either OpenMP (CPU) or
-OpenCL (GPU), and runs on distributed architectures via MPI.
+Veros supports both a NumPy backend for small-scale problems and a
+high-performance backend [powered by JAX](https://github.com/google/jax)
+with CPU and GPU support, and runs on distributed architectures via MPI.
 
 A good starting point to gain an overview of Veros\' design,
 performance, and capabilities are [these slides of a talk on

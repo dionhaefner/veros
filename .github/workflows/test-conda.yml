@@ -1,0 +1,76 @@
+name: Build Conda environment
+
+on:
+  pull_request:
+    paths:
+      - conda-environment.yml
+
+  push:
+    branches:
+      - master
+    paths:
+      - conda-environment.yml
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: "ubuntu-latest"
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          activate-environment: veros
+
+      - name: List
+        run: |
+          conda info
+          conda list
+
+      - name: Test
+        run: pytest
+
+  osx:
+    name: OSX
+    runs-on: "macos-latest"
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          activate-environment: veros
+
+      - name: List
+        run: |
+          conda info
+          conda list
+
+      - name: Test
+        run: pytest
+
+  windows:
+    name: Windows
+    runs-on: "windows-latest"
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          activate-environment: veros
+
+      - name: List
+        run: |
+          conda info
+          conda list
+
+      - name: Test
+        run: pytest

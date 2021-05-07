@@ -1,8 +1,7 @@
 from collections import namedtuple
 
-from .variables import Variable
-from .settings import Setting
-from .diagnostics.diagnostic import VerosDiagnostic
+from veros.variables import Variable
+from veros.settings import Setting
 
 VerosPlugin = namedtuple('VerosPlugin', [
     'name',
@@ -17,6 +16,8 @@ VerosPlugin = namedtuple('VerosPlugin', [
 
 
 def load_plugin(module):
+    from veros.diagnostics.base import VerosDiagnostic
+
     if not hasattr(module, '__VEROS_INTERFACE__'):
         raise RuntimeError('module {} is not a valid Veros plugin'.format(module.__name__))
 

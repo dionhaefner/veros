@@ -1,0 +1,11 @@
+{
+  "topography": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/wave_propagation/ETOPO5_Ice_g_gmt4.nc",
+    "md5": "12853ace540766bdf11f6f73655cb63a"
+  },
+
+  "forcing": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/wave_propagation/forcing_1deg_global.nc",
+    "md5": "1fc86f88acd820da078c8da5873cfa01"
+  }
+}

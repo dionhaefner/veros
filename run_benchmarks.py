@@ -20,7 +20,7 @@ Runs selected Veros benchmarks back to back and writes timing results to a YAML 
 """
 
 TESTDIR = os.path.join(os.path.dirname(__file__), os.path.relpath('benchmarks'))
-COMPONENTS = ['numpy', 'numpy-mpi', 'bohrium', 'bohrium-opencl', 'bohrium-cuda', 'bohrium-mpi', 'fortran', 'fortran-mpi']
+COMPONENTS = ['numpy', 'numpy-mpi', 'jax', 'jax-gpu', 'jax-mpi', 'fortran', 'fortran-mpi']
 STATIC_SETTINGS = '-v debug -s nx {nx} -s ny {ny} -s nz {nz} -s default_float_type {float_type} --timesteps {timesteps}'
 BENCHMARK_COMMANDS = {
     'numpy': '{python} {filename} -b numpy ' + STATIC_SETTINGS,

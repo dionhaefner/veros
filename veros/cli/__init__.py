@@ -12,8 +12,9 @@ if not have_click:
 del click
 del have_click
 
-from . import veros, veros_copy_setup, veros_create_mask, veros_resubmit
+from . import veros, veros_run, veros_copy_setup, veros_create_mask, veros_resubmit
 
+veros.cli.add_command(veros_run.cli, 'run')
 veros.cli.add_command(veros_copy_setup.cli, 'copy-setup')
 veros.cli.add_command(veros_create_mask.cli, 'create-mask')
 veros.cli.add_command(veros_resubmit.cli, 'resubmit')

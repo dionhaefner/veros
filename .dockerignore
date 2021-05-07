@@ -1,6 +1,0 @@
-**/__pycache__/
-**/*.pyc
-.cache
-.pytest_cache
-.coverage
-doc/_build

@@ -1,86 +1,62 @@
-from loguru import logger
+BACKENDS = ('numpy', 'jax')
 
-BACKENDS = None
+BACKEND_MESSAGES = {
+    'jax': 'Kernels are compiled during first iteration, be patient'
+}
 
-
-def init_environment():
-    import os
-    from . import runtime_state as rst
-
-    if rst.proc_rank > 0:
-        os.environ.update(
-            BH_OPENMP_CACHE_READONLY='true',
-            BH_UNSUP_WARN='false',
-        )
+_init_done = set()
 
 
-def init_backends():
-    init_environment()
+def init_jax_config():
+    if 'jax' in _init_done:
+        return
 
-    # populate available backend modules
-    global BACKENDS
-    BACKENDS = {}
+    import jax
+    from veros import runtime_settings
+    from veros.state import (
+        VerosState, VerosVariables, DistSafeVariableWrapper,
+        veros_state_pytree_flatten, veros_state_pytree_unflatten,
+        veros_variables_pytree_flatten, veros_variables_pytree_unflatten,
+        dist_safe_wrapper_pytree_flatten, dist_safe_wrapper_pytree_unflatten
+    )
+    jax.config.update('jax_enable_x64', runtime_settings.float_type == 'float64')
+    jax.config.update('jax_platform_name', runtime_settings.device)
 
-    import numpy
-    if numpy.__name__ == 'bohrium':
-        logger.warning('Running veros with "python -m bohrium" is discouraged '
-                       '(use "--backend bohrium" instead)')
-        import numpy_force
-        numpy = numpy_force
+    jax.tree_util.register_pytree_node(VerosState, veros_state_pytree_flatten, veros_state_pytree_unflatten)
+    jax.tree_util.register_pytree_node(VerosVariables, veros_variables_pytree_flatten, veros_variables_pytree_unflatten)
+    jax.tree_util.register_pytree_node(DistSafeVariableWrapper, dist_safe_wrapper_pytree_flatten, dist_safe_wrapper_pytree_unflatten)
 
-    BACKENDS['numpy'] = numpy
-
-    try:
-        import bohrium
-    except ImportError:
-        logger.warning('Could not import Bohrium (Bohrium backend will be unavailable)')
-        BACKENDS['bohrium'] = None
-    else:
-        BACKENDS['bohrium'] = bohrium
+    _init_done.add('jax')
 
 
-def get_backend(backend_name):
-    if BACKENDS is None:
-        init_backends()
-
+def get_backend_module(backend_name):
     if backend_name not in BACKENDS:
         raise ValueError('unrecognized backend {} (must be either of: {!r})'
                          .format(backend_name, list(BACKENDS.keys())))
 
-    if BACKENDS[backend_name] is None:
+    backend_module = None
+
+    if backend_name == 'jax':
+        try:
+            import jax  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            init_jax_config()
+            import jax.numpy as backend_module
+
+    elif backend_name == 'numpy':
+        import numpy as backend_module
+
+    if backend_module is None:
         raise ValueError('backend "{}" failed to import'.format(backend_name))
 
-    return BACKENDS[backend_name]
+    return backend_module
 
 
-def get_vector_engine(np):
-    from . import runtime_settings
+def get_curent_device_name():
+    from veros import runtime_settings
+    if runtime_settings.backend != 'jax':
+        return 'cpu'
 
-    if runtime_settings.backend == 'bohrium':
-        try:
-            import bohrium_api
-        except ImportError:
-            return None
-
-        if bohrium_api.stack_info.is_opencl_in_stack():
-            return 'opencl'
-
-        if bohrium_api.stack_info.is_cuda_in_stack():
-            return 'cuda'
-
-        return 'openmp'
-
-    return None
-
-
-def flush():
-    from . import runtime_settings as rs
-
-    if rs.backend == 'numpy':
-        pass
-
-    elif rs.backend == 'bohrium':
-        get_backend(rs.backend).flush()
-
-    else:
-        raise RuntimeError('Unrecognized backend %s' % rs.backend)
+    return runtime_settings.device

@@ -46,7 +46,7 @@ def get_residual(vs, rhs, sol, boundary_val=None):
         boundary_val = sol
     boundary_mask = np.logical_and.reduce(~vs.boundary_mask, axis=2)
     rhs = np.where(boundary_mask, rhs, boundary_val)
-    residual = scipy_solver._matrix @ sol.flatten() - rhs.flatten() * scipy_solver._rhs_scale
+    residual = scipy_solver._matrix @ sol.reshape(-1) - rhs.reshape(-1) * scipy_solver._rhs_scale
     return residual
 
 

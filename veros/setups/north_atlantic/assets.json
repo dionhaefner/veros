@@ -1,0 +1,16 @@
+{
+  "topography": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/north_atlantic/ETOPO1_Bed_g_gmt4_NA.nc",
+    "md5": "5bd5b5ea6f8ab529b9f74f560319b65d"
+  },
+
+  "forcing": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/north_atlantic/forcing_nc4.nc",
+    "md5": "9997ebf7798c0d1c28bcbdd406414f28"
+  },
+
+  "restoring": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/north_atlantic/restoring_zone.nc",
+    "md5": "618f6116e66be4349c1e7846dc44d06b"
+  }
+}

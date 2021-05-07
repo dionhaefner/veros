@@ -1,18 +1,13 @@
 import os
+import json
 import shutil
-
 import hashlib
+import urllib.parse as urlparse
 
 import requests
-import ruamel.yaml as yaml
-from loguru import logger
 
-from .filelock import FileLock
-
-try:
-    import urlparse
-except ImportError:
-    import urllib.parse as urlparse
+from veros.tools.filelock import FileLock
+from veros import logger
 
 
 ASSET_DIRECTORY = os.environ.get('VEROS_ASSET_DIR') or os.path.join(os.path.expanduser('~'), '.veros', 'assets')
@@ -77,7 +72,7 @@ def get_assets(asset_id, asset_file):
     Arguments:
 
        asset_id (str): Identifier of the collection of assets. Should be unique for each setup.
-       asset_file (str): YAML file containing URLs and (optionally) MD5 hashsums of each asset.
+       asset_file (str): JSON file containing URLs and (optionally) MD5 hashsums of each asset.
 
     Returns:
 
@@ -85,25 +80,29 @@ def get_assets(asset_id, asset_file):
 
     Example:
 
-       >>> assets = get_assets('mysetup', 'assets.yml')
+       >>> assets = get_assets('mysetup', 'assets.json')
        >>> assets['forcing']
        "/home/user/.veros/assets/mysetup/mysetup_forcing.h5",
            "initial_conditions": "/home/user/.veros/assets/mysetup/initial.h5"
        }
 
-    In this case, ``assets.yml`` contains::
+    In this case, ``assets.json`` contains::
 
-       forcing:
-           url: https://mywebsite.com/veros_assets/mysetup_forcing.h5
-           md5: ef3be0a58782771c8ee5a6d0206b87f6
+        {
+            "forcing": {
+                "url": "https://mywebsite.com/veros_assets/mysetup_forcing.h5",
+                "md5": "ef3be0a58782771c8ee5a6d0206b87f6"
+            },
 
-       initial_conditions:
-           url: https://mywebsite.com/veros_assets/initial.h5
-           md5: d1b4e0e199d7a5883cf7c88d3d6bcb28
+            "initial_conditions": {
+                "url": "https://mywebsite.com/veros_assets/initial.h5",
+                "md5": "d1b4e0e199d7a5883cf7c88d3d6bcb28"
+            }
+        }
 
     """
     with open(asset_file, 'r') as f:
-        assets = yaml.safe_load(f)
+        assets = json.load(f)
 
     asset_dir = os.path.join(ASSET_DIRECTORY, asset_id)
 

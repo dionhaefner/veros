@@ -1,0 +1,25 @@
+
+name: Build documentation
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      # make sure tags are fetched so we can get a version
+      - run: |
+          git fetch --prune --unshallow --tags
+
+      - name: Install requirements
+        run: pip install -r doc/requirements.txt
+
+      - name: Build docs
+        run: make -C doc html SPHINXOPTS="-W --keep-going"

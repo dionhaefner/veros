@@ -1,0 +1,11 @@
+{
+  "forcing": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/global_4deg/forcing_4deg_global_open_itf.nc",
+    "md5": "cfcc6d8cde8da5a74ecec00309d92dd7"
+  },
+
+  "ecmwf": {
+    "url": "https://sid.erda.dk/share_redirect/gsdZADr8to/global_4deg/ecmwf_4deg_monthly_nc4.nc",
+    "md5": "d1b4e0e199d7a5883cf7c88d3d6bcb27"
+  }
+}

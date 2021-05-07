@@ -1,4 +1,6 @@
-import numpy as np
+from veros.core.operators import numpy as np
+import numpy as onp
+
 import scipy.interpolate
 import scipy.spatial
 
@@ -25,20 +27,25 @@ def interpolate(coords, var, interp_coords, missing_value=None, fill=True, kind=
     """
     if len(coords) != len(interp_coords) or len(coords) != var.ndim:
         raise ValueError('Dimensions of coordinates and values do not match')
-    var = np.array(var)
+
     if missing_value is not None:
         invalid_mask = np.isclose(var, missing_value)
-        var[invalid_mask] = np.nan
+        var = np.where(invalid_mask, np.nan, var)
+
     if var.ndim > 1 and coords[0].ndim == 1:
         interp_grid = np.rollaxis(np.array(np.meshgrid(
-            *interp_coords, indexing='ij', copy=False)), 0, len(interp_coords) + 1)
+            *interp_coords, indexing='ij')), 0, len(interp_coords) + 1)
     else:
-        interp_grid = coords
-    var = scipy.interpolate.interpn(coords, var, interp_grid,
+        interp_grid = interp_coords
+
+    coords = [onp.array(c) for c in coords]
+    var = scipy.interpolate.interpn(coords, onp.array(var), interp_grid,
                                     bounds_error=False, fill_value=np.nan, method=kind)
+    var = np.asarray(var)
 
     if fill:
         var = fill_holes(var)
+
     return var
 
 
@@ -46,11 +53,9 @@ def fill_holes(data):
     """A simple inpainting function that replaces NaN values in `data` with the
     nearest finite value.
     """
-    data = data.copy()
-    shape = data.shape
+    data = onp.array(data)
     dim = data.ndim
-    flag = np.zeros(shape, dtype=bool)
-    flag[~np.isnan(data)] = True
+    flag = ~onp.isnan(data)
 
     slcs = [slice(None)] * dim
 
@@ -74,7 +79,7 @@ def fill_holes(data):
             data[slcs2][repmask] = data[slcs1][repmask]
             flag[slcs2][repmask] = True
 
-    return data
+    return np.asarray(data)
 
 
 def get_periodic_interval(current_time, cycle_length, rec_spacing, n_rec):
@@ -106,14 +111,13 @@ def get_periodic_interval(current_time, cycle_length, rec_spacing, n_rec):
        >>> data_at_current_time = f1 * data[..., n1] + f2 * data[..., n2]
 
     """
-    locTime = current_time - rec_spacing * 0.5 + \
-        cycle_length * (2 - round(current_time / cycle_length))
-    tmpTime = locTime % cycle_length
-    tRec1 = 1 + int(tmpTime / rec_spacing)
-    tRec2 = 1 + tRec1 % int(n_rec)
-    wght2 = (tmpTime - rec_spacing * (tRec1 - 1)) / rec_spacing
-    wght1 = 1.0 - wght2
-    return (tRec1 - 1, wght1), (tRec2 - 1, wght2)
+    current_time = current_time % cycle_length
+    # using np.array works with both NumPy and JAX
+    t_idx_1 = np.array(current_time // rec_spacing, dtype='int')
+    t_idx_2 = np.array((1 + t_idx_1) % n_rec, dtype='int')
+    weight_2 = (current_time - rec_spacing * t_idx_1) / rec_spacing
+    weight_1 = 1.0 - weight_2
+    return (t_idx_1, weight_1), (t_idx_2, weight_2)
 
 
 def make_cyclic(longitude, array=None, wrap=360.):
@@ -177,31 +181,33 @@ def get_coastline_distance(coords, coast_mask, spherical=False, radius=None, num
     if spherical and not radius:
         raise ValueError('radius must be given for spherical coordinates')
 
-    watercoords = np.array([c[~coast_mask] for c in coords]).T
+    watercoords = onp.array([c[~coast_mask] for c in coords]).T
     if spherical:
-        coastcoords = np.array(make_cyclic(coords[0][coast_mask], coords[1][coast_mask])).T
+        coastcoords = onp.array(make_cyclic(coords[0][coast_mask], coords[1][coast_mask])).T
     else:
-        coastcoords = np.array((coords[0][coast_mask], coords[1][coast_mask])).T
+        coastcoords = onp.array((coords[0][coast_mask], coords[1][coast_mask])).T
     coast_kdtree = scipy.spatial.cKDTree(coastcoords)
 
-    distance = np.zeros(coords[0].shape)
-    if spherical:
+    distance = onp.zeros(coords[0].shape)
 
+    if spherical:
         def spherical_distance(coords1, coords2):
             """Calculate great circle distance from latitude and longitude"""
-            coords1 *= np.pi / 180.
-            coords2 *= np.pi / 180.
+            coords1 *= onp.pi / 180.
+            coords2 *= onp.pi / 180.
             lon1, lon2, lat1, lat2 = coords1[..., 0], coords2[..., 0], coords1[..., 1], coords2[..., 1]
-            return radius * np.arccos(np.sin(lat1) * np.sin(lat2) + np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2))
+            return radius * onp.arccos(onp.sin(lat1) * onp.sin(lat2) + onp.cos(lat1) * onp.cos(lat2) * onp.cos(lon1 - lon2))
 
         if not num_candidates:
-            num_candidates = int(np.sqrt(np.count_nonzero(~coast_mask)))
+            num_candidates = int(onp.sqrt(onp.count_nonzero(~coast_mask)))
         i_nearest = coast_kdtree.query(watercoords, k=num_candidates, n_jobs=n_jobs)[1]
         approx_nearest = coastcoords[i_nearest]
-        distance[~coast_mask] = np.min(spherical_distance(approx_nearest, watercoords[..., np.newaxis, :]), axis=-1)
+        distance[~coast_mask] = onp.min(spherical_distance(approx_nearest, watercoords[..., onp.newaxis, :]), axis=-1)
+
     else:
         distance[~coast_mask] = coast_kdtree.query(watercoords, n_jobs=n_jobs)[0]
-    return distance
+
+    return np.asarray(distance)
 
 
 def get_uniform_grid_steps(total_length, stepsize):

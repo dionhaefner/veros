@@ -1,8 +1,8 @@
-from loguru import logger
+from veros import logger
 
-from .diagnostic import VerosDiagnostic
-from .. import veros_method
-from ..distributed import global_sum
+from veros.core.operators import numpy as np
+from veros.diagnostics.diagnostic import VerosDiagnostic
+from veros.distributed import global_sum
 
 
 class TracerMonitor(VerosDiagnostic):
@@ -15,35 +15,36 @@ class TracerMonitor(VerosDiagnostic):
     #: internal attributes to write to restart file
     restart_attributes = ('tempm1', 'vtemp1', 'saltm1', 'vsalt1')
 
-    def initialize(self, vs):
+    def initialize(self, state):
         self.tempm1 = 0.
         self.vtemp1 = 0.
         self.saltm1 = 0.
         self.vsalt1 = 0.
 
-    def diagnose(self, vs):
+    def diagnose(self, state):
         pass
 
-    @veros_method
-    def output(self, vs):
+    def output(self, state):
         """
         Diagnose tracer content
         """
+        vs = state.variables
+
         cell_volume = vs.area_t[2:-2, 2:-2, np.newaxis] * vs.dzt[np.newaxis, np.newaxis, :] \
             * vs.maskT[2:-2, 2:-2, :]
-        volm = global_sum(vs, np.sum(cell_volume))
-        tempm = global_sum(vs, np.sum(cell_volume * vs.temp[2:-2, 2:-2, :, vs.tau]))
-        saltm = global_sum(vs, np.sum(cell_volume * vs.salt[2:-2, 2:-2, :, vs.tau]))
-        vtemp = global_sum(vs, np.sum(cell_volume * vs.temp[2:-2, 2:-2, :, vs.tau]**2))
-        vsalt = global_sum(vs, np.sum(cell_volume * vs.salt[2:-2, 2:-2, :, vs.tau]**2))
+        volm = global_sum(np.sum(cell_volume))
+        tempm = global_sum(np.sum(cell_volume * vs.temp[2:-2, 2:-2, :, vs.tau]))
+        saltm = global_sum(np.sum(cell_volume * vs.salt[2:-2, 2:-2, :, vs.tau]))
+        vtemp = global_sum(np.sum(cell_volume * vs.temp[2:-2, 2:-2, :, vs.tau]**2))
+        vsalt = global_sum(np.sum(cell_volume * vs.salt[2:-2, 2:-2, :, vs.tau]**2))
 
-        logger.diagnostic(' Mean temperature {} change to last {}'
+        logger.diagnostic(' Mean temperature {:.2e} change to last {:.2e}'
                           .format(float(tempm / volm), float((tempm - self.tempm1) / volm)))
-        logger.diagnostic(' Mean salinity    {} change to last {}'
+        logger.diagnostic(' Mean salinity    {:.2e} change to last {:.2e}'
                           .format(float(saltm / volm), float((saltm - self.saltm1) / volm)))
-        logger.diagnostic(' Temperature var. {} change to last {}'
+        logger.diagnostic(' Temperature var. {:.2e} change to last {:.2e}'
                           .format(float(vtemp / volm), float((vtemp - self.vtemp1) / volm)))
-        logger.diagnostic(' Salinity var.    {} change to last {}'
+        logger.diagnostic(' Salinity var.    {:.2e} change to last {:.2e}'
                           .format(float(vsalt / volm), float((vsalt - self.vsalt1) / volm)))
 
         self.tempm1 = tempm
@@ -51,11 +52,11 @@ class TracerMonitor(VerosDiagnostic):
         self.saltm1 = saltm
         self.vsalt1 = vsalt
 
-    def read_restart(self, vs, infile):
-        attributes, variables = self.read_h5_restart(vs, {}, infile)
+    def read_restart(self, state, infile):
+        attributes, _ = self.read_h5_restart(state, {}, infile)
         for attr in self.restart_attributes:
             setattr(self, attr, attributes[attr])
 
-    def write_restart(self, vs, outfile):
+    def write_restart(self, state, outfile):
         attributes = {key: getattr(self, key) for key in self.restart_attributes}
-        self.write_h5_restart(vs, attributes, {}, {}, outfile)
+        self.write_h5_restart(state, attributes, {}, {}, outfile)

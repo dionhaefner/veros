@@ -1,8 +1,6 @@
 import importlib.util
 
-from loguru import logger
-
-from . import veros, settings, runtime_settings, runtime_state
+from veros import VerosSetup, logger, settings, runtime_settings, runtime_state
 
 
 def _load_fortran_module(module, path):
@@ -18,18 +16,18 @@ class LowercaseAttributeWrapper:
     """
 
     def __init__(self, wrapped_object):
-        object.__setattr__(self, '_w', wrapped_object)
+        super().__setattr__(self, '_w', wrapped_object)
 
     def __getattr__(self, key):
         if key == '_w':
-            return object.__getattribute__(self, '_w')
-        return getattr(object.__getattribute__(self, '_w'), key.lower())
+            return super().__getattribute__(self, '_w')
+        return getattr(super().__getattribute__(self, '_w'), key.lower())
 
     def __setattr__(self, key, value):
         setattr(self._w, key.lower(), value)
 
 
-class VerosLegacy(veros.VerosSetup):
+class VerosLegacy(VerosSetup):
     """
     An alternative Veros class that supports the pyOM Fortran interface as backend
 
@@ -38,30 +36,38 @@ class VerosLegacy(veros.VerosSetup):
        Do not use this class for new setups!
 
     """
-    def __init__(self, fortran=None, *args, **kwargs):
+    def __init__(self, pyom_lib=None, *args, **kwargs):
         """
-        To use the pyOM2 legacy interface point the fortran argument to the Veros fortran library:
+        To use the pyOM2 legacy interface point the pyom_lib argument to the pyOM2 Fortran library:
 
-        > simulation = GlobalOneDegreeSetup(fortran='pyOM_code.so')
+        Example:
+
+            >>> sim = GlobalOneDegreeSetup(pyom_lib='pyOM_code.so')
+            >>> sim.setup()
+            >>> sim.run()
 
         """
-        super(VerosLegacy, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-        if fortran:
+        if pyom_lib:
             self.legacy_mode = True
+
             try:
-                self.fortran = LowercaseAttributeWrapper(_load_fortran_module('pyOM_code', fortran))
+                self.fortran = LowercaseAttributeWrapper(_load_fortran_module('pyOM_code', pyom_lib))
                 self.use_mpi = False
             except ImportError:
-                self.fortran = LowercaseAttributeWrapper(_load_fortran_module('pyOM_code_MPI', fortran))
+                self.fortran = LowercaseAttributeWrapper(_load_fortran_module('pyOM_code_MPI', pyom_lib))
                 self.use_mpi = True
+
                 from mpi4py import MPI
                 self.mpi_comm = MPI.COMM_WORLD
+
             self.main_module = LowercaseAttributeWrapper(self.fortran.main_module)
             self.isoneutral_module = LowercaseAttributeWrapper(self.fortran.isoneutral_module)
             self.idemix_module = LowercaseAttributeWrapper(self.fortran.idemix_module)
             self.tke_module = LowercaseAttributeWrapper(self.fortran.tke_module)
             self.eke_module = LowercaseAttributeWrapper(self.fortran.eke_module)
+
         else:
             self.legacy_mode = False
             self.use_mpi = False
@@ -71,11 +77,9 @@ class VerosLegacy(veros.VerosSetup):
             self.idemix_module = self.state
             self.tke_module = self.state
             self.eke_module = self.state
+
         self.modules = (self.main_module, self.isoneutral_module, self.idemix_module,
                         self.tke_module, self.eke_module)
-
-        if self.use_mpi and self.mpi_comm.Get_rank() != 0:
-            kwargs['loglevel'] = 'critical'
 
     def set_legacy_parameter(self):
         m = self.fortran.main_module
@@ -133,12 +137,13 @@ class VerosLegacy(veros.VerosSetup):
                 self.set_diagnostics(vs)
                 self.set_forcing(vs)
                 self.fortran.check_isoneutral_slope_crit()
+
             else:
                 # self.set_parameter() is called twice, but that shouldn't matter
                 self.set_parameter(vs)
                 self._set_commandline_settings()
                 self.set_legacy_parameter()
-                super(VerosLegacy, self).setup(*args, **kwargs)
+                super().setup(*args, **kwargs)
 
                 diag_legacy_settings = (
                     (vs.diagnostics['cfl_monitor'], 'output_frequency', 'ts_monint'),
@@ -158,7 +163,7 @@ class VerosLegacy(veros.VerosSetup):
 
     def run(self, **kwargs):
         if not self.legacy_mode:
-            return super(VerosLegacy, self).run(**kwargs)
+            return super().run(**kwargs)
 
         vs = self.state
         f = self.fortran
@@ -243,7 +248,7 @@ class VerosLegacy(veros.VerosSetup):
 
             self.after_timestep(vs)
 
-            otaum1 = m.taum1 * 1
+            otaum1 = int(m.taum1)
             m.taum1 = m.tau
             m.tau = m.taup1
             m.taup1 = otaum1

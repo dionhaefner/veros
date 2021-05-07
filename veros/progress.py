@@ -2,7 +2,7 @@ import sys
 import functools
 from time import perf_counter
 
-from loguru import logger
+from veros import logger
 
 try:
     import tqdm
@@ -167,7 +167,7 @@ class FancyProgressBar:
         self._pbar.refresh()
 
 
-def get_progress_bar(vs, use_tqdm=None):
+def get_progress_bar(state, use_tqdm=None):
     if use_tqdm is None:
         use_tqdm = sys.stdout.isatty() and rst.proc_num == 1 and has_tqdm
 
@@ -175,9 +175,9 @@ def get_progress_bar(vs, use_tqdm=None):
         raise RuntimeError('tqdm failed to import. Try `pip install tqdm` or set use_tqdm=False.')
 
     kwargs = dict(
-        total=vs.runlen + vs.time,
-        start_time=vs.time,
-        start_iteration=vs.itt
+        total=state.settings.runlen + float(state.variables.time),
+        start_time=float(state.variables.time),
+        start_iteration=int(state.variables.itt)
     )
 
     if use_tqdm:

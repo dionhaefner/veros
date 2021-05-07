@@ -1,0 +1,20 @@
+name: veros
+
+channels:
+    - conda-forge
+
+dependencies:
+    - python=3.8
+    - pip
+    - click
+    - entrypoints
+    - requests
+    - numpy
+    - scipy
+    - h5netcdf
+    - h5py
+    - pillow
+    - loguru
+    - tqdm
+    - pip:
+        - -e . --no-deps

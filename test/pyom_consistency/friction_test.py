@@ -78,7 +78,4 @@ class FrictionTest(VerosPyOMUnitTest):
 
 
 def test_friction(pyom2_lib, backend):
-    # TODO: debug this
-    if backend == 'bohrium' and os.environ.get('BH_STACK', '').lower() in ('opencl',):
-        pytest.xfail(reason='OpenCL memory corruption')
     FrictionTest(fortran=pyom2_lib, backend=backend).run()
